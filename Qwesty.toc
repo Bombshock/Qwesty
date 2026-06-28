@@ -1,0 +1,9 @@
+## Interface: 120000
+
+## Title: Qwesty
+## Notes: Automatically accepts and turns in quests, but never picks between multiple dialog choices.
+## Author: Qwesty
+## Version: 1.0.0
+## SavedVariables: QwestySavedVars
+
+Qwesty.lua
