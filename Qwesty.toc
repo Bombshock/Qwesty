@@ -2,7 +2,7 @@
 
 ## Title: Qwesty
 ## Notes: Automatically accepts and turns in quests, but never picks between multiple dialog choices.
-## Author: Qwesty
+## Author: NeonLazor
 ## Version: 1.0.0
 ## SavedVariables: QwestySavedVars
 
