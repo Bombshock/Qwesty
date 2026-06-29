@@ -39,133 +39,6 @@ local function DBG(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cffFFD700[Qwesty]|r |cff888888[DBG]|r " .. msg)
 end
 
--- -- Minimap button ----------------------------------------------------------
-
-local ICON = "Interface\\GossipFrame\\ActiveQuestIcon"  -- yellow question mark
-
-local minimapButton = CreateFrame("Button", "QwestyMinimapButton", Minimap)
-minimapButton:SetSize(32, 32)
-minimapButton:SetFrameStrata("MEDIUM")
-minimapButton:SetFrameLevel(8)
-
--- Circular mask so it looks like a standard minimap icon
-local mask = minimapButton:CreateMaskTexture()
-mask:SetAllPoints()
-mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-
-local icon = minimapButton:CreateTexture(nil, "BACKGROUND")
-icon:SetAllPoints()
-icon:SetTexture(ICON)
-icon:AddMaskTexture(mask)
-minimapButton.icon = icon
-
--- Highlight ring
-local hl = minimapButton:CreateTexture(nil, "HIGHLIGHT")
-hl:SetAllPoints()
-hl:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-
--- Border ring
-local border = minimapButton:CreateTexture(nil, "OVERLAY")
-border:SetSize(54, 54)
-border:SetPoint("CENTER")
-border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-
-local function UpdateMinimapIcon()
-    if enabled then
-        icon:SetDesaturated(false)
-        icon:SetVertexColor(1, 1, 1)
-    else
-        icon:SetDesaturated(true)
-        icon:SetVertexColor(0.35, 0.35, 0.35)
-    end
-end
-
--- Position the button around the minimap edge.
--- `angle` is stored in SavedVariables-style via a simple upvalue so it
--- persists only for the session (full persistence would need SavedVariables).
-local minimapAngle = 195  -- degrees; 0 = right, clockwise
-
-local function RepositionMinimapButton()
-    local rad    = math.rad(minimapAngle)
-    local radius = 80  -- distance from minimap center to button center
-    minimapButton:SetPoint("CENTER", Minimap, "CENTER",
-        math.cos(rad) * radius, math.sin(rad) * radius)
-end
-
-RepositionMinimapButton()
-
--- Drag to reposition around the minimap ring
-minimapButton:SetMovable(false)
-minimapButton:RegisterForDrag("LeftButton")
-
-minimapButton:SetScript("OnDragStart", function(self)
-    self:SetScript("OnUpdate", function()
-        local cx, cy   = Minimap:GetCenter()
-        local mx, my   = GetCursorPosition()
-        local scale    = Minimap:GetEffectiveScale()
-        mx, my         = mx / scale, my / scale
-        minimapAngle   = math.deg(math.atan2(my - cy, mx - cx))
-        RepositionMinimapButton()
-    end)
-end)
-
-minimapButton:SetScript("OnDragStop", function(self)
-    self:SetScript("OnUpdate", nil)
-end)
-
--- Tooltip
-local function UpdateMinimapTooltip()
-    GameTooltip:SetOwner(minimapButton, "ANCHOR_LEFT")
-    GameTooltip:SetText("Qwesty", 1, 1, 0)
-    GameTooltip:AddLine(enabled and "|cff00FF00Enabled|r" or "|cffFF4444Disabled|r")
-    GameTooltip:AddLine("|cffAAAAAALeft-click|r to toggle", 1, 1, 1)
-    GameTooltip:AddLine("|cffAAAAAARight-click|r for options", 1, 1, 1)
-    GameTooltip:AddLine("|cffAAAAAADrag|r to reposition", 1, 1, 1)
-    GameTooltip:Show()
-end
-
-minimapButton:SetScript("OnEnter", function(self)
-    UpdateMinimapTooltip()
-end)
-
--- Right-click dropdown menu
-local minimapDropdown = CreateFrame("Frame", "QwestyMinimapDropdown", UIParent, "UIDropDownMenuTemplate")
-local function BuildMinimapMenu()
-    local info = UIDropDownMenu_CreateInfo()
-
-    info.text         = "Debug Log"
-    info.checked      = debug
-    info.isNotRadio   = true
-    info.func         = function(_, _, _, checked)
-        debug = not checked
-        QwestySavedVars = QwestySavedVars or {}
-        QwestySavedVars.debug = debug
-        Print("Debug log " .. (debug and "|cff00FF00ON|r" or "|cffAAAAAAdisabled|r") .. ".")
-    end
-    UIDropDownMenu_AddButton(info)
-end
-
--- Click to toggle / right-click for options
-minimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-minimapButton:SetScript("OnClick", function(self, button)
-    if button == "RightButton" then
-        UIDropDownMenu_Initialize(minimapDropdown, BuildMinimapMenu, "MENU")
-        ToggleDropDownMenu(1, nil, minimapDropdown, self, 0, 0)
-    else
-        enabled = not enabled
-        UpdateMinimapIcon()
-        Print(enabled and "Enabled." or "Disabled.")
-        if GameTooltip:GetOwner() == minimapButton then
-            UpdateMinimapTooltip()
-        end
-    end
-end)
-
-minimapButton:SetScript("OnLeave", function()
-    GameTooltip:Hide()
-end)
-
--- -- End minimap button ------------------------------------------------------
 
 local GOSSIP_FLAG_LABELS = {
     [0] = "dialog",
@@ -487,7 +360,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 blacklist[id] = value
             end
         end
-        UpdateMinimapIcon()
         Print("Loaded. Type /qwesty on|off|debug to toggle.")
         return
     end
@@ -536,11 +408,9 @@ SlashCmdList["QWESTY"] = function(msg)
     msg = string.lower(string.match(msg, "^%s*(.-)%s*$"))
     if msg == "on" then
         enabled = true
-        UpdateMinimapIcon()
         Print("Enabled.")
     elseif msg == "off" then
         enabled = false
-        UpdateMinimapIcon()
         Print("Disabled.")
     elseif msg == "debug" then
         debug = not debug
