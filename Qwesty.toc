@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120007, 120100
 
 ## Title: Qwesty
 ## Notes: Automatically accepts and turns in quests, but never picks between multiple dialog choices.

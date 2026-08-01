@@ -7,14 +7,13 @@
  *
  * Files are nested under a top-level "Qwesty/" folder inside the archive so the
  * zip extracts straight into Interface/AddOns the way WoW expects, and the zip
- * is named "Qwesty-<version>-<interface>.zip" using the ## Version and
- * ## Interface lines from the .toc.
+ * is named "Qwesty-<version>.zip" using the ## Version from the .toc.
  *
  * The zip is written with a tiny self-contained writer (Node's zlib + a CRC32
  * table), so this script has no npm dependencies.
  *
  * Usage:
- *   node tools/build-release.js            # writes Qwesty-<version>-<interface>.zip into builds/
+ *   node tools/build-release.js            # writes Qwesty-<version>.zip into builds/
  *   node tools/build-release.js -o dist    # writes it into ./dist instead
  */
 
@@ -130,22 +129,6 @@ function readVersion(tocPath) {
     return m[1];
 }
 
-// A .toc may target several clients at once ("## Interface: 120005, 120007").
-// The zip is named after the newest client it supports, so take the highest.
-function readInterface(tocPath) {
-    const toc = path.basename(tocPath);
-    const m = fs.readFileSync(tocPath, 'utf8').match(/^##\s*Interface:\s*(.+?)\s*$/mi);
-    if (!m) throw new Error(`No "## Interface:" line found in ${toc}`);
-
-    const values = m[1].split(',').map((v) => v.trim()).filter(Boolean);
-    if (values.length === 0) throw new Error(`Empty "## Interface:" line in ${toc}`);
-
-    const bad = values.find((v) => !/^\d+$/.test(v));
-    if (bad) throw new Error(`Non-numeric interface version "${bad}" in ${toc}`);
-
-    return values.reduce((a, b) => (Number(b) > Number(a) ? b : a));
-}
-
 function main() {
     const argv = process.argv.slice(2);
     let outDir = path.join(ROOT, 'builds');
@@ -165,15 +148,13 @@ function main() {
         f.toLowerCase() === 'readme.md'
     );
 
-    const tocPath = path.join(ROOT, tocFiles[0]);
-    const version = readVersion(tocPath);
-    const iface = readInterface(tocPath);
+    const version = readVersion(path.join(ROOT, tocFiles[0]));
     const entries = shipped.map((f) => {
         const full = path.join(ROOT, f);
         return { name: `${ADDON_NAME}/${f}`, data: fs.readFileSync(full), mtime: fs.statSync(full).mtime };
     });
 
-    const zipName = `${ADDON_NAME}-${version}-${iface}.zip`;
+    const zipName = `${ADDON_NAME}-${version}.zip`;
     fs.mkdirSync(outDir, { recursive: true });
     const outPath = path.join(outDir, zipName);
     fs.writeFileSync(outPath, buildZip(entries));
